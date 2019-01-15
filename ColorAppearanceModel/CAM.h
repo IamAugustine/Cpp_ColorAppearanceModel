@@ -33,7 +33,7 @@ public:
 	double Nc;
 	double F;
 	double c;
-	double xyz_white[3];
+	double* xyz_white;
 	double xyz_ref[3];
 	double Yb;
 	double La;
@@ -46,7 +46,7 @@ public:
 public:
 	double* Multiply3x3WithVector(const double* M, const double* x)
 	{
-		double result[3];
+		double* result = new double[3];
 		for (size_t i = 0; i < 3; i++)
 		{
 			result[i] = M[i * 3] * x[0] + M[i * 3 + 1] * x[1] + M[i * 3 + 2] * x[2];

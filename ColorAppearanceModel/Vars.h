@@ -9,7 +9,7 @@ extern struct CAMEnviroment
 {
 public:
 	ViewConditionParam Condition;
-	double XYZ_white[3];
+	double* XYZ_white;
 	double Yb;
 	double La;
 

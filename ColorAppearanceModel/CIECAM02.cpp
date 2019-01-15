@@ -37,7 +37,8 @@ CIECAM02::CIECAM02(CAMEnviroment * enviroment)
 	}
 	La = enviroment->La;
 	Yb = enviroment->Yb;
-
+	xyz_white = enviroment->XYZ_white;
+	Initialize();
 }
 
 CIECAM02::~CIECAM02()
@@ -46,32 +47,44 @@ CIECAM02::~CIECAM02()
 
 CAMOuptut CIECAM02::GetForwardValue(const double * xyz)
 {
-	double* lmsW = ChromaticAdaption(xyz_white);
-	double* lms = ChromaticAdaption(xyz);
-	double* lmsCorrsp = new double[3];//Adapted Cone Response
+	//XYZ to Cone Response Space LMS
+	double* lmsW = ChromaticAdaption(xyz_white);//RwGwBw
+	double* lms = ChromaticAdaption(xyz);//RGB
+
+	//Adapted Cone Response
+	double* lmsCorrsp = new double[3];//RcGcBc
+	double* lmsCorrspW = new double[3]; //RcwGcwBcw
 	for (size_t i = 0; i < 3 ;i++)
 	{
 		lmsCorrsp[i] = (D*(xyz_white[1] / lmsW[i]) + (1 - D))*lms[i];
+		lmsCorrspW[i] = (D*(xyz_white[1] / lmsW[i]) + (1 - D))*lmsW[i];
 	}
-	double* lmsPrime = HPETransform(InverseChromaticAdaption (lmsCorrsp));
-	double* lmsWhitePrime = HPETransform(InverseChromaticAdaption(lmsW));
+	//Adapted Cone Response to HPE space
+	double* lmsPrime = HPETransform(InverseChromaticAdaption (lmsCorrsp));//R'G'B'
+	double* lmsWhitePrime = HPETransform(InverseChromaticAdaption(lmsCorrspW));//Rw'Gw'Bw'
+
+	//Post adaption nonlinear response compression
 	double* lmsPostAdaption = new double[3];
 	double* lmsWhitePostAdaption = new double[3];
-
-	
 	for (size_t i = 0; i < 3; i++)
 	{
 		lmsPostAdaption[i] = NonlinearCompression(lmsPrime[i]);
 		lmsWhitePostAdaption[i] = NonlinearCompression(lmsWhitePrime[i]);
 	}
+
+	//a and b
 	double a = lmsPostAdaption[0] - 12 * lmsPostAdaption[1] / 11 + lmsPostAdaption[2] / 11;
 	double b = (lmsPostAdaption[0] + lmsPostAdaption[1] - 2 * lmsPostAdaption[2]) / 9;
+	//Hue angle
 	double hueAngle = Cartesian2PolarAngle(a, b);
-	double et = 0.25*(cos(hueAngle + 2) + 3.8);
-	double t = (50000 * Nc*Ncb / 13)* et * sqrt(a*a + b * b) / (lmsPostAdaption[0] + lmsPostAdaption[1] + 1.05*lmsPostAdaption[2]);
-	hueAngle = RadianToDegree(hueAngle);
+	//Eccentricity factor
+	double et = (12500.0 * Nc*Ncb / 13.0) * (cos(hueAngle*PI/180 + 2) + 3.8);
+	//Temporal magnitude
+	double t = et * sqrt(a*a + b * b) / (lmsPostAdaption[0] + lmsPostAdaption[1] + 1.05*lmsPostAdaption[2]);
+	//Achromatic response
 	double A = GetAchromaticResponse(lmsPostAdaption);
 	double Aw = GetAchromaticResponse(lmsWhitePostAdaption);
+	//Calculate 
 	CAMOuptut* output = new CAMOuptut;
 	output->a = a;
 	output->b = b;
@@ -82,17 +95,28 @@ CAMOuptut CIECAM02::GetForwardValue(const double * xyz)
 	output->C = pow(t, 0.9)*sqrt(output->J / 100)*pow((1.64 - pow(0.29, n)), 0.73);
 	output->M = output->C*pow(FL, 0.25);
 	output->s = 100 * sqrt(output->M / output->Q);
+
+
+	//Delete Variables
+	delete lmsW;
+	delete lms;
+	delete lmsCorrsp;
+	delete lmsCorrspW;
+	delete lmsPrime;
+	delete lmsWhitePrime;
+	delete lmsPostAdaption;
+	delete lmsWhitePostAdaption;
 	return *output;
 }
 double CIECAM02::CalculateHueComposition(const double hueAngle)
 {
-	double hp = hueAngle < H[0] ? hueAngle + 360 : hueAngle;
+	double hp = hueAngle < h[0] ? hueAngle + 360 : hueAngle;
 	
-	double hi;
-	vector<double>::iterator it = std::find_if(h.begin(), h.end(), [&hi](const double& hp)->bool {return  hi >= hp; });
-	int i = std::distance(it, h.begin()) - 1;
 	
-	return H[i] + 100 * (hp - h[i]) / e[i] / ((hp - h[i] / e[i] + (h[i + 1] - hp) / e[i + 1]));
+	vector<double>::iterator it = std::find_if(h.begin(), h.end(), [&hp](double hi)->bool {return  hi >= hp; });
+	int i = abs(std::distance(it, h.begin())) - 1;
+	
+	return H[i] + 100 * (hp - h[i]) / e[i] / ((hp - h[i]) / e[i] + (h[i + 1]-hp ) / e[i + 1]);
 }
 double CIECAM02::GetAchromaticResponse(const double* rgb)
 {
@@ -204,7 +228,7 @@ double CIECAM02::CalculateColorDifference(const double* xyz1, const double* xyz2
 void CIECAM02::Initialize()
 {
 	k = 1 / (5 * La + 1);
-	FL = 0.2*pow(k, 4) * 5 * La + 0.1*(1 - pow(k, 4))*(1 - pow(k, 4))*pow(5 * La, 1 / 3);
+	FL = 0.2*pow(k, 4) * 5 * La + 0.1*(1 - pow(k, 4))*(1 - pow(k, 4))*pow(5 * La, 0.3333);
 	n = Yb / xyz_white[1];
 	Ncb = Nbb = 0.725*pow(1 / n, 0.2);
 	D = F * (1 - (1 / 3.6)*exp((-La - 42) / 92));

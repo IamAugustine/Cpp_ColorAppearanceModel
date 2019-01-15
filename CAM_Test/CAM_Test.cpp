@@ -4,16 +4,42 @@
 #include "pch.h"
 #include <iostream>
 #include "..\ColorAppearanceModel\CIECAM02.h"
+void PrintCiecam02ForwardSolution(double* xyz, CAMEnviroment* envo, CAMOuptut* v)
+{
+	cout << "Forward Solution of CIECAM02  "<< endl;
+	cout << "----------------------------  " << endl;
+	cout << "Input XYZ Value: " << xyz[0] << "," << xyz[1] << "," << xyz[2] << endl;
+	cout << "Enviroment settings" << endl;
+	cout << "XYZ Value of White Point: " << envo->XYZ_white[0] << "," << envo->XYZ_white[1] << "," << envo->XYZ_white[2] << endl;
+	cout << "La = " << envo->La << endl;
+	cout << "Yb = " << envo->Yb << endl;
+	cout << "----------------------------  " << endl;
+	cout << "Output: " << endl;
+	cout << "Q = " << v->Q << endl;
+	cout << "J = " << v->J << endl;
+	cout << "M = " << v->M << endl;
+	cout << "C = " << v->C << endl;
+	cout << "S = " << v->s << endl;
+	cout << "h = " << v->h << endl;
+	cout << "H = " << v->H << endl;
+	cout << "a = " << v->a << endl;
+	cout << "b = " << v->b << endl;
 
+}
 int main()
 {
     std::cout << "Hello World!\n"; 
-	CAMEnviroment* envrmnt;
-	envrmnt->Condition = ViewConditionParam::Dark;
-
+	CAMEnviroment* envrmnt = new CAMEnviroment;
+	envrmnt->Condition = ViewConditionParam::Average;
+	envrmnt->XYZ_white = new double[3]{ 95.05,100,108.88 };
+	envrmnt->La = 31.83;
+	envrmnt->Yb = 20;
 	CIECAM02* cam02 = new CIECAM02(envrmnt);
-	double* testXyz = new double[3]{ 50, 10, 10 };
-
+	double* testXyz = new double[3]{ 57.06, 43.06, 31.96 };
+	CAMOuptut result = cam02->GetForwardValue(testXyz);
+	PrintCiecam02ForwardSolution(testXyz, envrmnt, &result);
+	double* reserveXyz = cam02->GetInverseValue(&result);
+	
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
