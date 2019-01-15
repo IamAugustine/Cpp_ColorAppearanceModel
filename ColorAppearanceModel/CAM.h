@@ -1,21 +1,30 @@
 #pragma once
 #include "Vars.h"
 #include <math.h>
+#ifndef CAM_H
+#define CAM_H
+#endif
+
+#define CAM_API __declspec(dllexport)
+
+
+
+
 constexpr auto PI = 3.1415927;;
-inline double DegreeToRadian(double x)
+extern inline double DegreeToRadian(double x)
 {
 	return x/180.0 * PI;
 }
-inline double RadianToDegree(double x)
+extern inline double RadianToDegree(double x)
 {
 	return x * 180.0/ PI;
 }
-inline double Cartesian2PolarAngle(double x, double y)
+extern inline double Cartesian2PolarAngle(double x, double y)
 {
 	double angle = atan2(y, x);
 	return angle < 0 ? 360 + RadianToDegree(angle) : RadianToDegree(angle);
 }
-class CAM
+class CAM_API CAM
 {
 public:
 	CAM();
@@ -30,9 +39,9 @@ public:
 	double La;
 
 public:
-	virtual CAMOuptut GetForwardValue(double* xyz);
-	virtual double* GetInverseValue(CAMOuptut* output);
-
+	virtual CAMOuptut GetForwardValue(const double* xyz) =0;
+	virtual double* GetInverseValue(const CAMOuptut* output) =0;
+	virtual double CalculateColorDifference(const double* xyz1, const double* xyz2) =0;
 	
 public:
 	double* Multiply3x3WithVector(const double* M, const double* x)

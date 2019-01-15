@@ -1,11 +1,11 @@
 #pragma once
-enum ViewConditionParam
+typedef enum ViewConditionParam
 {
 	Average,
 	Dim,
 	Dark
 };
-struct CAMEnviroment
+extern struct CAMEnviroment
 {
 public:
 	ViewConditionParam Condition;
@@ -14,7 +14,7 @@ public:
 	double La;
 
 };
-struct CAMOuptut
+extern struct CAMOuptut
 {
 public:
 	double Q;//Brightness

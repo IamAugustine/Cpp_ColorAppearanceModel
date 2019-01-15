@@ -12,7 +12,7 @@
 using namespace std;
 
 
-class CIECAM02 :public CAM
+class CAM_API CIECAM02:public CAM
 {
 public:
 	CIECAM02(CAMEnviroment* enviroment);
@@ -32,9 +32,9 @@ public:
 	double* InverseChromaticAdaption(const double* input);
 	double* HPETransform(const double* input);
 	double* HPEInverseTransform(const double* input);
+	double CalculateColorDifference(const double* xyz1, const double* xyz2);
 	void Initialize();
 private:
-	
 	double CalculateHueComposition(const double huaAngle);
 	double GetAchromaticResponse(const double * rgb);
 	double NonlinearCompression(const double v);

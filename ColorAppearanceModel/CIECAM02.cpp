@@ -194,6 +194,13 @@ double * CIECAM02::HPEInverseTransform(const double * input)
 	return Multiply3x3WithVector(&MhpeInv[0][0], input);
 }
 
+double CIECAM02::CalculateColorDifference(const double* xyz1, const double* xyz2)
+{
+	CAMOuptut output1 = GetForwardValue(xyz1);
+	CAMOuptut output2 = GetForwardValue(xyz2);
+	return output1.J - output2.J;
+}
+
 void CIECAM02::Initialize()
 {
 	k = 1 / (5 * La + 1);
