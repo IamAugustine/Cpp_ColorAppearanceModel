@@ -41,7 +41,7 @@ public:
 public:
 	virtual CAMOuptut GetForwardValue(const double* xyz) =0;
 	virtual double* GetInverseValue(const CAMOuptut* output) =0;
-	virtual double CalculateColorDifference(const double* xyz1, const double* xyz2) =0;
+	virtual double* CalculateColorDifference(const double* xyz1, const double* xyz2) =0;
 	
 public:
 	double* Multiply3x3WithVector(const double* M, const double* x)

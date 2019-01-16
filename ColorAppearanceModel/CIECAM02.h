@@ -32,7 +32,7 @@ public:
 	double* InverseChromaticAdaption(const double* input);
 	double* HPETransform(const double* input);
 	double* HPEInverseTransform(const double* input);
-	double CalculateColorDifference(const double* xyz1, const double* xyz2);
+	double* CalculateColorDifference(const double* xyz1, const double* xyz2);
 	void Initialize();
 private:
 	double CalculateHueComposition(const double huaAngle);

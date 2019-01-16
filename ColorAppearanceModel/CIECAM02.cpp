@@ -2,10 +2,11 @@
 #include "CIECAM02.h"
 #include "CAM.h"
 #include <math.h>
-//#define PI 3.1415927
 #include <vector>
 #include <algorithm>
 #define IsLargerThan(x1, x2) x1 > x2? 1:0; 
+
+//Reference: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.89.7364&rep=rep1&type=pdf
 
 
 using namespace std;
@@ -84,6 +85,17 @@ CAMOuptut CIECAM02::GetForwardValue(const double * xyz)
 	//Achromatic response
 	double A = GetAchromaticResponse(lmsPostAdaption);
 	double Aw = GetAchromaticResponse(lmsWhitePostAdaption);
+
+	//Delete used variables
+	delete lmsW;
+	delete lms;
+	delete lmsCorrsp;
+	delete lmsCorrspW;
+	delete lmsPrime;
+	delete lmsWhitePrime;
+	delete lmsPostAdaption;
+	delete lmsWhitePostAdaption;
+
 	//Calculate 
 	CAMOuptut* output = new CAMOuptut;
 	output->a = a;
@@ -95,17 +107,17 @@ CAMOuptut CIECAM02::GetForwardValue(const double * xyz)
 	output->C = pow(t, 0.9)*sqrt(output->J / 100)*pow((1.64 - pow(0.29, n)), 0.73);
 	output->M = output->C*pow(FL, 0.25);
 	output->s = 100 * sqrt(output->M / output->Q);
+	hueAngle = DegreeToRadian(hueAngle);
+	output->am = output->M * cos(hueAngle);
+	output->bm = output->M * sin(hueAngle);
+	output->ac = output->C * cos(hueAngle);
+	output->bc = output->C * sin(hueAngle);
+	output->as = output->s * cos(hueAngle);
+	output->bs = output->s * sin(hueAngle);
 
 
-	//Delete Variables
-	delete lmsW;
-	delete lms;
-	delete lmsCorrsp;
-	delete lmsCorrspW;
-	delete lmsPrime;
-	delete lmsWhitePrime;
-	delete lmsPostAdaption;
-	delete lmsWhitePostAdaption;
+
+	//Return results
 	return *output;
 }
 double CIECAM02::CalculateHueComposition(const double hueAngle)
@@ -130,10 +142,14 @@ double CIECAM02::NonlinearCompression(double v)
 }
 double* CIECAM02::GetInverseValue(const CAMOuptut* output)
 {
-	double* lmsW = ChromaticAdaption(xyz_white);
-	double* lmsWhitePrime = HPETransform(InverseChromaticAdaption(lmsW));
+	double* lmsW = ChromaticAdaption(xyz_white); 
+	double* lmsCorrspW = new double[3]; 
+	for (size_t i = 0; i < 3; i++)
+	{
+		lmsCorrspW[i] = (D*(xyz_white[1] / lmsW[i]) + (1 - D))*lmsW[i];
+	}
+	double* lmsWhitePrime = HPETransform(InverseChromaticAdaption(lmsCorrspW));
 	double* lmsWhitePostAdaption = new double[3];
-	//std::transform(lmsWhitePrime, lmsWhitePrime+3, lmsWhitePostAdaption, NonlinearCompression);
 	for (size_t i = 0; i < 3; i++)
 	{
 		lmsWhitePostAdaption[i] = NonlinearCompression(lmsWhitePrime[i]);
@@ -141,12 +157,12 @@ double* CIECAM02::GetInverseValue(const CAMOuptut* output)
 	double Aw = GetAchromaticResponse(lmsWhitePostAdaption);
 
 	double hueAngle = CalculateHueAngle(output->H);
-	double t = pow(output->C / (sqrt(output->C / 100.0) * pow(1.64 - pow(0.29, n), 0.73)), 10 / 9);
-	double et = 0.25 * (cos(DegreeToRadian(output->h) + 2.0) + 3.8);
-	double a = pow(output->J / 100.0, 1.0 / (c * z)) * Aw;
+	double t = pow(output->C / (sqrt(output->J / 100.0) * pow(1.64 - pow(0.29, n), 0.73)), 10.0 / 9.0);
+	double et = ((12500.0 / 13.0) * Nc * Ncb) * (cos(DegreeToRadian(output->h) + 2.0) + 3.8);
+	double A = pow(output->J / 100.0, 1.0 / (c * z)) * Aw;
 
-	double p1 = ((50000.0 / 13.0) * Nc * Ncb) * et / t;
-	double p2 = (a / Nbb) + 0.305;
+	double p1 =  et / t;
+	double p2 = (A / Nbb) + 0.305;
 	double p3 = 21.0 / 20.0;
 	double p4, p5, ca, cb;
 	double hr = DegreeToRadian(hueAngle);
@@ -195,8 +211,11 @@ double CIECAM02::InverseNonlinearCompression(double c)
 }
 double CIECAM02::CalculateHueAngle(const double Hc)
 {
-	return 0;
-	//vector<double>::iterator it = std::find_if(H.rbegin(), H.rend(), )
+	
+	vector<double>::iterator it = std::find_if(H.begin(), H.end(), [&Hc](double Hi) {return Hi >= Hc; });
+	int i = abs(distance(H.begin(), it)) - 1;
+	double hue = ((Hc - H[i])*(e[i + 1] * h[i] - e[i] * h[i + 1]) - 100 * h[i] * e[i + 1]) / ((Hc - H[i])*(e[i + 1] - e[i]) - 100 * e[i + 1]);
+	return hue > 360 ? hue - 360 : hue;
 }
 double * CIECAM02::ChromaticAdaption(const double * input)
 {
@@ -218,11 +237,15 @@ double * CIECAM02::HPEInverseTransform(const double * input)
 	return Multiply3x3WithVector(&MhpeInv[0][0], input);
 }
 
-double CIECAM02::CalculateColorDifference(const double* xyz1, const double* xyz2)
+double* CIECAM02::CalculateColorDifference(const double* xyz1, const double* xyz2)
 {
 	CAMOuptut output1 = GetForwardValue(xyz1);
 	CAMOuptut output2 = GetForwardValue(xyz2);
-	return output1.J - output2.J;
+	CAMOuptut diff = output1 - output2;
+	double deltaE_JMH = sqrt(diff.J *diff.J + diff.am*diff.am + diff.bm*diff.bm);
+	double deltaE_JCH = sqrt(diff.J *diff.J + diff.ac*diff.ac + diff.bc*diff.bc);
+	double deltaE_JSH = sqrt(diff.J *diff.J + diff.ac*diff.as + diff.bc*diff.bs);
+	return new double[3]{deltaE_JCH, deltaE_JMH, deltaE_JSH};
 }
 
 void CIECAM02::Initialize()

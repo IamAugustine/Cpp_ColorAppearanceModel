@@ -28,7 +28,6 @@ void PrintCiecam02ForwardSolution(double* xyz, CAMEnviroment* envo, CAMOuptut* v
 }
 int main()
 {
-    std::cout << "Hello World!\n"; 
 	CAMEnviroment* envrmnt = new CAMEnviroment;
 	envrmnt->Condition = ViewConditionParam::Average;
 	envrmnt->XYZ_white = new double[3]{ 95.05,100,108.88 };

@@ -17,6 +17,18 @@ public:
 extern struct CAMOuptut
 {
 public:
+	CAMOuptut operator -(const CAMOuptut& x){
+		CAMOuptut diff;
+		diff.J = x.J - J;
+		diff.as = x.as - as;
+		diff.bs = x.bs - bs;
+		diff.ac = x.ac - ac;
+		diff.bc = x.bc - bc;
+		diff.am = x.am - am;
+		diff.bm = x.bm - bm;
+		return diff;
+	};
+public:
 	double Q;//Brightness
 	double J;//Lightness;
 	double M;//Colorfulness;
@@ -26,4 +38,10 @@ public:
 	double H;// HueComposition;
 	double a;
 	double b;
+	double ac;
+	double bc;
+	double am;
+	double bm;
+	double as;
+	double bs;
 };
